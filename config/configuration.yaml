@@ -1,0 +1,10 @@
+fire_nav_settings:
+  UpdateFireFps: 10.0
+  WorldFrame: "map"
+  BodyFrame: "base_link"
+  CameraFrame: "camera"
+  TargetFrame: "fire"
+  SpinnerThread: 3
+  NavStatus_topic: "/move_base/status"
+  NavTarget_topic: "/move_base_simple/goal"
+  ModelSwitch_Fps: 10.0
