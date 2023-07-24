@@ -47,7 +47,7 @@ void FireManager::setupTimer()
         ReceiveAndUpdateFireStateTimer = nh_.createTimer(ros::Duration(duration),
                                                          &FireManager::ReceiveAndUpdateFireStateTimerCallBack, this);
     }
-    if (1)
+    if (0)
     {
         double ModelSwitch_Fps_;
         nh_.param<double>("/nav_upper/nav_manager_settings/ModelSwitch_Fps", ModelSwitch_Fps_, 3.0);

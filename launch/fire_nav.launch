@@ -1,5 +1,5 @@
 <launch>
-  <node pkg="tf" type="static_transform_publisher" name="tf_camera" args="0 0 -0.55 0 0 0 world camera 100" />
+  <node pkg="tf" type="static_transform_publisher" name="tf_camera" args="0.06 0.05 0.35 1.56566 3.1106 1.40666 base_link camera 100" />
   <node name="fire_nav" pkg="fire_nav" type="fire_nav_node" output="screen">
   <rosparam file="$(find fire_nav)/config/configuration.yaml" command="load" />
   </node>
