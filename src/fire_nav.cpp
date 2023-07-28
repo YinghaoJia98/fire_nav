@@ -120,6 +120,21 @@ void FireManager::ReceiveAndUpdateFireStateTimerCallBack(const ros::TimerEvent &
     quat.setEuler(0.0, 0.0, 0.0);
     tf::Vector3 origin(0.0, 0.0, 0.0);
     tf::Pose poseTF(quat, origin);
+    double MinTimes_ = 0.8 / (origin[0] * origin[0] +
+                              origin[1] * origin[1]);
+    tf::Vector3 TargetPositionInCameraFrame_;
+    if (MinTimes_ > 1.0)
+    {
+        TargetPositionInCameraFrame_[0] = 0.01 * origin[0];
+        TargetPositionInCameraFrame_[1] = 0.01 * origin[1];
+        TargetPositionInCameraFrame_[2] = 0.01 * origin[2];
+    }
+    else
+    {
+        TargetPositionInCameraFrame_[0] = (1 - MinTimes_) * origin[0];
+        TargetPositionInCameraFrame_[1] = (1 - MinTimes_) * origin[1];
+        TargetPositionInCameraFrame_[2] = (1 - MinTimes_) * origin[2];
+    }
 
     tf::Transform CameraToTargetTransformMiddle;
     CameraToTargetTransformMiddle.setOrigin(tf::Vector3(0.0, 2.0, 0.0));
@@ -129,13 +144,13 @@ void FireManager::ReceiveAndUpdateFireStateTimerCallBack(const ros::TimerEvent &
                                              CameraFrame_.c_str(),
                                              TargetFrame_.c_str()));
 
-    tf::TransformListener world_target_listener;
-    tf::StampedTransform world_target_transform;
+    tf::TransformListener world_camera_listener;
+    tf::StampedTransform world_camera_transform;
     try
     {
-        world_target_listener.waitForTransform(WorldFrame_.c_str(), CameraFrame_.c_str(), ros::Time(0), ros::Duration(1.0));
-        world_target_listener.lookupTransform(WorldFrame_.c_str(), CameraFrame_.c_str(),
-                                              ros::Time(0), world_target_transform);
+        world_camera_listener.waitForTransform(WorldFrame_.c_str(), CameraFrame_.c_str(), ros::Time(0), ros::Duration(1.0));
+        world_camera_listener.lookupTransform(WorldFrame_.c_str(), CameraFrame_.c_str(),
+                                              ros::Time(0), world_camera_transform);
         /*
         world_target_listener.waitForTransform(WorldFrame_.c_str(), TargetFrame_.c_str(), ros::Time(0), ros::Duration(1.0));
                 world_target_listener.lookupTransform(WorldFrame_.c_str(), TargetFrame_.c_str(),
@@ -148,15 +163,39 @@ void FireManager::ReceiveAndUpdateFireStateTimerCallBack(const ros::TimerEvent &
         // ros::Duration(1.0).sleep();
     }
 
-    tf::Quaternion q_target = world_target_transform.getRotation();
-    double yaw_target_ = tf::getYaw(q_target);
+    // Eigen::Vector3d TargetPositionInCameraFrame_;
+    // Eigen::Matrix3d TargetpostureInCmaeraFrame_;
+    // tf::Quaternion q_camera = world_camera_transform.getRotation();
+    // CamerapostureInWorldFrame_ = ;
+    tf::Vector3 TargetPositionInWorldFrame_ = world_camera_transform * TargetPositionInCameraFrame_;
+    tf::TransformListener world_base_listener;
+    tf::StampedTransform world_base_transform;
+    try
+    {
+        world_base_listener.waitForTransform(WorldFrame_.c_str(), BodyFrame_.c_str(), ros::Time(0), ros::Duration(1.0));
+        world_base_listener.lookupTransform(WorldFrame_.c_str(), BodyFrame_.c_str(),
+                                            ros::Time(0), world_base_transform);
+    }
+    catch (tf::TransformException &ex)
+    {
+        ROS_ERROR(" There is something wrong when trying get robot pose.");
+        ROS_ERROR("%s", ex.what());
+    }
+    tf::Vector3 RobotPositionInWorldFrame_(world_base_transform.getOrigin().x(),
+                                           world_base_transform.getOrigin().y(),
+                                           world_base_transform.getOrigin().z());
+
+    // tf::Quaternion q_target = world_target_transform.getRotation();
+    // double yaw_target_ = tf::getYaw(q_target);
+    double yaw_target_ = ((TargetPositionInWorldFrame_[1] - RobotPositionInWorldFrame_[1]) /
+                          (TargetPositionInWorldFrame_[0] - RobotPositionInWorldFrame_[0]));
     geometry_msgs::PoseStamped TargetPose_;
     TargetPose_.header.frame_id = WorldFrame_.c_str();
     TargetPose_.header.seq = IdSeqPub_;
     IdSeqPub_++;
     TargetPose_.header.stamp = ros::Time::now();
-    TargetPose_.pose.position.x = world_target_transform.getOrigin().x();
-    TargetPose_.pose.position.y = world_target_transform.getOrigin().y();
+    TargetPose_.pose.position.x = TargetPositionInWorldFrame_[0];
+    TargetPose_.pose.position.y = TargetPositionInWorldFrame_[1];
     TargetPose_.pose.position.z = 0.0;
     tf2::Quaternion q_target_tf2_;
     q_target_tf2_.setRPY(0, 0, yaw_target_);
