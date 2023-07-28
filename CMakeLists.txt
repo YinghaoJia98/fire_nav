@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(fire_nav)
 
 # # Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 # # Find catkin macros and libraries
 # # if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 # # System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(cppzmq)
 
 # # Uncomment this if the package has a setup.py. This macro ensures
 # # modules and global scripts declared therein get installed
@@ -146,9 +147,10 @@ file(GLOB src_files
 
 # # With catkin_make all packages are built within a single CMake context
 # # The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node src/fire_nav_node.cpp)
+add_executable(${PROJECT_NAME}_node src/fire_nav_node.cpp ${src_files})
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
+  zmq
 )
 
 # # Rename C++ executable without prefix

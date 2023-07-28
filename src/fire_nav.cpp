@@ -10,10 +10,13 @@ FireManager::FireManager(const ros::NodeHandle &nh, const ros::NodeHandle &nh_pr
 
 void FireManager::initialize()
 {
+    ROS_INFO("Register zmq.");
     ContextPtr_.reset(new zmq::context_t(1));
     ReqSockPtr_.reset(new zmq::socket_t(*ContextPtr_, ZMQ_REQ));
+
     ReqSockPtr_->setsockopt(ZMQ_IDENTITY, "client1", 7);
     ReqSockPtr_->connect("tcp://localhost:7001");
+    ROS_INFO("Register zmq succeed.");
     IdSeqPub_ = 1;
     std::string NavTarget_topic_, NavStatus_topic_;
 
@@ -70,22 +73,26 @@ void FireManager::ReceiveAndUpdateFireStateTimerCallBack(const ros::TimerEvent &
 {
     std::lock_guard<std::mutex> lock1(FireStateMutex_);
 
-    // ROS_INFO("hello");
+    ROS_INFO("hello timer");
 
-    // tf::TransformListener world_base_listener;
-    // tf::StampedTransform world_base_transform;
-    // try
-    // {
-    //     world_base_listener.waitForTransform(WorldFrame_.c_str(), BodyFrame_.c_str(), ros::Time(0), ros::Duration(1.0));
-    //     world_base_listener.lookupTransform(WorldFrame_.c_str(), BodyFrame_.c_str(),
-    //                                         ros::Time(0), world_base_transform);
-    // }
-    // catch (tf::TransformException &ex)
-    // {
-    //     ROS_ERROR("There is something wrong when trying get robot pose to get target orientation.");
-    //     ROS_ERROR("%s", ex.what());
-    //     // ros::Duration(1.0).sleep();
-    // }
+    // zmq::context_t Context_(1);
+    // zmq::socket_t ReqSock(Context_,ZMQ_DEALER);
+    // ReqSock.setsockopt(ZMQ_IDENTITY, "client1", 7);
+    // ReqSock.connect("tcp://localhost:7001");
+    //  tf::TransformListener world_base_listener;
+    //  tf::StampedTransform world_base_transform;
+    //  try
+    //  {
+    //      world_base_listener.waitForTransform(WorldFrame_.c_str(), BodyFrame_.c_str(), ros::Time(0), ros::Duration(1.0));
+    //      world_base_listener.lookupTransform(WorldFrame_.c_str(), BodyFrame_.c_str(),
+    //                                          ros::Time(0), world_base_transform);
+    //  }
+    //  catch (tf::TransformException &ex)
+    //  {
+    //      ROS_ERROR("There is something wrong when trying get robot pose to get target orientation.");
+    //      ROS_ERROR("%s", ex.what());
+    //      // ros::Duration(1.0).sleep();
+    //  }
 
     // tf::TransformListener world_camera_listener;
     // tf::StampedTransform world_camera_transform;
@@ -107,6 +114,7 @@ void FireManager::ReceiveAndUpdateFireStateTimerCallBack(const ros::TimerEvent &
     zmq_msg_recv(&msgIn, *ReqSockPtr_, 0);
     std::cout << "recv:" << (char *)zmq_msg_data(&msgIn) << std::endl;
     zmq_msg_close(&msgIn);
+    ROS_INFO("end receive");
     // TODO Receive message.
     tf::Quaternion quat;
     quat.setEuler(0.0, 0.0, 0.0);
@@ -125,13 +133,17 @@ void FireManager::ReceiveAndUpdateFireStateTimerCallBack(const ros::TimerEvent &
     tf::StampedTransform world_target_transform;
     try
     {
-        world_target_listener.waitForTransform(WorldFrame_.c_str(), TargetFrame_.c_str(), ros::Time(0), ros::Duration(1.0));
-        world_target_listener.lookupTransform(WorldFrame_.c_str(), TargetFrame_.c_str(),
+        world_target_listener.waitForTransform(WorldFrame_.c_str(), CameraFrame_.c_str(), ros::Time(0), ros::Duration(1.0));
+        world_target_listener.lookupTransform(WorldFrame_.c_str(), CameraFrame_.c_str(),
                                               ros::Time(0), world_target_transform);
+        /*
+        world_target_listener.waitForTransform(WorldFrame_.c_str(), TargetFrame_.c_str(), ros::Time(0), ros::Duration(1.0));
+                world_target_listener.lookupTransform(WorldFrame_.c_str(), TargetFrame_.c_str(),
+                                                      ros::Time(0), world_target_transform);*/
     }
     catch (tf::TransformException &ex)
     {
-        ROS_ERROR("There is something wrong when trying get target pose to get target orientation.");
+        ROS_ERROR("There is something wrong when trying get target pose and get target orientation.");
         ROS_ERROR("%s", ex.what());
         // ros::Duration(1.0).sleep();
     }
